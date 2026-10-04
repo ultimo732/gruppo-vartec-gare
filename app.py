@@ -10,11 +10,19 @@ st.set_page_config(page_title="Gruppo Vartec - Gare & Offerte Tecniche", layout=
 st.title("Gruppo Vartec")
 st.subheader("Analisi Gare d'Appalto & Generatore Offerte Tecniche")
 
+# Barra laterale per caricare il bando ufficiale
+st.sidebar.header("📁 Documentazione di Gara")
+bando_file = st.sidebar.file_uploader("Carica Bando / Capitolato (PDF)", type=["pdf"])
+
 tab_analisi, tab_offerta = st.tabs(["📊 Analisi Parametri Gara", "📝 Generatore Offerta Tecnica"])
 
 with tab_analisi:
     st.header("Valutazione di Convenienza e Ribasso")
-    st.write("Inserisci i dati della gara d'appalto per calcolare il ribasso e simulare il punteggio tecnico-economico.")
+    
+    if bando_file:
+        st.success(f"Bando caricato con successo: **{bando_file.name}**")
+    else:
+        st.info("💡 Puoi caricare il PDF del bando o del capitolato dalla barra laterale per tenerlo associato alla simulazione.")
 
     importo_base = st.number_input("Importo Base d'Asta (€):", min_value=0.0, value=200000.0, step=5000.0)
     ribasso_offerto = st.slider("Percentuale di Ribasso (%)", min_value=0.0, max_value=40.0, value=12.5, step=0.1)
