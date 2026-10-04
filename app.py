@@ -4,27 +4,56 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
+from pypdf import PdfReader
+import re
 
 st.set_page_config(page_title="Gruppo Vartec - Gare & Offerte Tecniche", layout="centered")
 
 st.title("Gruppo Vartec")
-st.subheader("Analisi Gare d'Appalto & Generatore Offerte Tecniche")
+st.subheader("Analisi Intelligente Gare & Offerte Tecniche")
 
 # Barra laterale per caricare il bando ufficiale
 st.sidebar.header("📁 Documentazione di Gara")
 bando_file = st.sidebar.file_uploader("Carica Bando / Capitolato (PDF)", type=["pdf"])
 
-tab_analisi, tab_offerta = st.tabs(["📊 Analisi Parametri Gara", "📝 Generatore Offerta Tecnica"])
+testo_bando = ""
+importo_suggerito = 200000.0
+
+# Estrazione automatica dal PDF caricato
+if bando_file:
+    try:
+        reader = PdfReader(bando_file)
+        for page in reader.pages:
+            estratto = page.extract_text()
+            if estratto:
+                testo_bando += estratto + "\n"
+        
+        # Cerca eventuali corrispondenze per l'importo nel testo del bando
+        match = re.search(r'(?:base d\'asta|importo complessivo|importo a base di gara)[\s\S]*?([\d\.,]+)\s*€', testo_bando, re.IGNORECASE)
+        if match:
+            numero_str = match.group(1).replace('.', '').replace(',', '.')
+            try:
+                val = float(numero_str)
+                if val > 1000:
+                    importo_suggerito = val
+            except:
+                pass
+    except Exception as e:
+        st.sidebar.error(f"Errore nella lettura del PDF: {e}")
+
+tab_analisi, tab_offerta = st.tabs(["📊 Analisi e Lettura Bando", "📝 Generatore Offerta Tecnica"])
 
 with tab_analisi:
     st.header("Valutazione di Convenienza e Ribasso")
     
     if bando_file:
-        st.success(f"Bando caricato con successo: **{bando_file.name}**")
+        st.success(f"Bando letto con successo: **{bando_file.name}**")
+        with st.expander("🔍 Clicca per visualizzare l'estratto del testo letto dal PDF"):
+            st.text_area("Testo del bando", testo_bando[:4000] if testo_bando else "Nessun testo estratto.", height=180)
     else:
-        st.info("💡 Puoi caricare il PDF del bando o del capitolato dalla barra laterale per tenerlo associato alla simulazione.")
+        st.info("💡 Carica il PDF del bando dalla barra laterale per consentire all'app di leggerlo automaticamente.")
 
-    importo_base = st.number_input("Importo Base d'Asta (€):", min_value=0.0, value=200000.0, step=5000.0)
+    importo_base = st.number_input("Importo Base d'Asta (€):", min_value=0.0, value=importo_suggerito, step=5000.0)
     ribasso_offerto = st.slider("Percentuale di Ribasso (%)", min_value=0.0, max_value=40.0, value=12.5, step=0.1)
     
     peso_eco = st.slider("Peso Offerta Economica (%)", min_value=10, max_value=90, value=70)
